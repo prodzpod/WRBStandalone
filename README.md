@@ -1,3 +1,21 @@
+# DO NOT DOWNLOAD THIS MOD
+UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+
+[Well Rounded Balance](https://cutt.ly/wrb) has dependencies because it is the 
+## [RECOMMENDED EXPERIENCE](https://cutt.ly/wrb)
+to play with. this mod is 
+## [ONLY FOR MODPACK](https://cutt.ly/wrb)
+and advanced usage purposes and 
+## [YOU SHOULD NOT DOWNLOAD](https://cutt.ly/wrb)
+this mod unless you are looking for a 
+## [PROPER WRB EXPERIENCE](https://cutt.ly/wrb)
+
+## [GO DOWNLOAD THE ORIGINAL](https://cutt.ly/wrb)
+
+## [IF YOU ARE](https://cutt.ly/wrb)
+
+## [NOW](https://cutt.ly/wrb)
+
 # [Well Rounded Balance](https://cutt.ly/wrb) Standalone
 Downloads [WRB](https://cutt.ly/wrb) Manually in your mods folder, and keeps it updated.
 
@@ -22,3 +40,6 @@ This mod can also be configured to circumvent download mods other than WRB. use 
 
 ## Stealing downloads?
 This mods uses the thunderstore API to download and update the mod(s), so it shouldn't steal any downloads. at least in theory.
+
+## Changelog
+- 1.0.1: Updated README because mfs keeps worrying that ppl will download this cluelessly

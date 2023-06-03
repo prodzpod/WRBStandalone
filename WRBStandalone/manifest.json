@@ -1,6 +1,6 @@
 {
 	"name": "WRBStandalone",
-	"version_number": "1.0.0",
+	"version_number": "1.0.1",
 	"website_url": "https://github.com/prodzpod/WRBStandalone",
 	"description": "Downloads WRB without dependencies for you. Also able to download other mods.",
 	"dependencies": [
