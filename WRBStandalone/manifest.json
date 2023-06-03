@@ -1,8 +1,8 @@
 {
 	"name": "WRBStandalone",
-	"version_number": "1.0.1",
+	"version_number": "1.0.2",
 	"website_url": "https://github.com/prodzpod/WRBStandalone",
-	"description": "Downloads WRB without dependencies for you. Also able to download other mods.",
+	"description": "DO NOT DOWNLOAD - DOWNLOAD cutt.ly/wrb INSTEAD (if you don't know what you're doing), can also standalone-ify other mods",
 	"dependencies": [
 		"bbepis-BepInExPack-5.4.2103",
 		"RiskofThunder-R2API_Language-1.0.0",

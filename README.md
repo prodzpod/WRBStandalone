@@ -42,4 +42,5 @@ This mod can also be configured to circumvent download mods other than WRB. use 
 This mods uses the thunderstore API to download and update the mod(s), so it shouldn't steal any downloads. at least in theory.
 
 ## Changelog
+- 1.0.2: Updated manifest too. smirker are you happy now god lol
 - 1.0.1: Updated README because mfs keeps worrying that ppl will download this cluelessly
