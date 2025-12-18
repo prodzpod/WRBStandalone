@@ -3,13 +3,16 @@ using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using Mono.Cecil;
 using R2API.Utils;
 using RoR2;
 using RoR2.UI;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -17,16 +20,12 @@ using UnityEngine;
 
 namespace WRBStandalone
 {
-    [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-    [BepInDependency("BALLS.WellRoundedBalance", BepInDependency.DependencyFlags.SoftDependency)]
-    public class Main : BaseUnityPlugin
+    public static class Main
     {
         public const string PluginGUID = PluginAuthor + "." + PluginName;
         public const string PluginAuthor = "zzz.prodzpod";
         public const string PluginName = "WRBStandalone";
         public const string PluginVersion = "1.0.2";
-        public static ManualLogSource Log;
-        public static PluginInfo pluginInfo;
 
         public static MPInput input;
         public static MPButton button;
@@ -38,10 +37,11 @@ namespace WRBStandalone
         public static ConfigEntry<string> installPath;
 
         public static string modname;
-        public void Awake()
+        public static IEnumerable<string> TargetDLLs { get; } = new string[0];
+        public static void Patch(AssemblyDefinition _) {}
+
+        public static void Initialize()
         {
-            pluginInfo = Info;
-            Log = Logger;
             Config = new(System.IO.Path.Combine(Paths.ConfigPath, PluginGUID + ".cfg"), true);
             lookup = Config.Bind("General", "Mod to download (Thunderstore URL)", "TheBestAssociatedLargelyLudicrousSillyheadGroup/WellRoundedBalance", "Change this to manually download some other mod? might not work, use Crunderstore URL");
             lookupGUID = Config.Bind("General", "Mod to download (Mod GUID)", "BALLS.WellRoundedBalance", "if blank, will try to convert TS URL").Value;
@@ -77,15 +77,19 @@ namespace WRBStandalone
             if (SimpleDialogBox.instancesList.Count <= 1) Time.timeScale = 1f;
         }
 
-        public async void Download()
+        public static async void Download()
         {
             try
             {
-                Log.LogInfo("Fetching Newest " + modname + "Version");
-                HttpClient http = new() { BaseAddress = new Uri("https://thunderstore.io") };
+                LogInfo("Fetching Newest " + modname + "Version");
+                var handler = new HttpClientHandler();
+                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => { return true; };
+                ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+                HttpClient http = new(handler) { BaseAddress = new Uri("https://thunderstore.io") };
                 using HttpResponseMessage response = await http.GetAsync("api/experimental/package/" + lookup.Value);
                 response.EnsureSuccessStatusCode();
-                Log.LogInfo("Successfully Fetched Newest " + modname + " Version");
+                LogInfo("Successfully Fetched Newest " + modname + " Version");
                 string jsonResponse = await response.Content.ReadAsStringAsync();
                 Match match = Regex.Match(jsonResponse, @"\""download_url\""\s*:\s*\""https:\/\/thunderstore\.io\/([^\s]+)\/\""");
                 if (match.Success && match.Groups.Count > 1)
@@ -93,61 +97,66 @@ namespace WRBStandalone
                     string url = match.Groups[1].Value;
                     if (WRBInstalled && installPath.Value == url)
                     {
-                        Log.LogInfo(modname + " seems up to date! skipping download.");
+                        LogInfo(modname + " seems up to date! skipping download.");
                         return;
                     }
                     else
                     {
-                        if (WRBInstalled) Log.LogInfo(modname + " has been updated! Redownloading...");
+                        if (WRBInstalled) LogInfo(modname + " has been updated! Redownloading...");
                         WRBInstalled = false;
                         installPath.Value = url;
                     }
-                    Log.LogInfo("Downloading " + url);
+                    LogInfo("Downloading " + url);
                     using HttpResponseMessage raw = await http.GetAsync(url);
                     raw.EnsureSuccessStatusCode();
-                    Log.LogInfo("Successfully Fetched Newest " + modname);
+                    LogInfo("Successfully Fetched Newest " + modname);
                     Stream str = await raw.Content.ReadAsStreamAsync();
-                    Log.LogInfo("Creating .zip file, size = " + str.Length);
+                    LogInfo("Creating .zip file, size = " + str.Length);
                     using var zip = new ZipArchive(str, ZipArchiveMode.Read, false);
-                    Log.LogInfo("Unpacking...");
+                    LogInfo("Unpacking...");
                     string currentFolder = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
                     zip.ExtractToDirectory(currentFolder + "\\temp");
                     foreach (var d in new DirectoryInfo(currentFolder + "\\temp").GetDirectories())
                     {
-                        Log.LogInfo("Installing " + d.Name);
+                        LogInfo("Installing " + d.Name);
                         if (Directory.Exists(currentFolder + "\\" + d.Name)) Directory.Delete(currentFolder + "\\" + d.Name, true);
                         Directory.Move(currentFolder + "\\temp\\" + d.Name, currentFolder + "\\" + d.Name);
                     }
                     foreach (var f in new DirectoryInfo(currentFolder + "\\temp").GetFiles())
                     {
-                        Log.LogInfo("Installing " + f.Name);
+                        LogInfo("Installing " + f.Name);
                         if (File.Exists(currentFolder + "\\" + f.Name)) File.Delete(currentFolder + "\\" + f.Name);
                         File.Move(currentFolder + "\\temp\\" + f.Name, currentFolder + "\\" + f.Name);
                     }
                     Directory.Delete(currentFolder + "\\temp");
-                    Log.LogInfo("Successful!");
+                    LogInfo("Successful!");
                     if (Directory.Exists(currentFolder + "\\config"))
                     {
-                        Log.LogInfo("Moving configs to proper folder..");
+                        LogInfo("Moving configs to proper folder..");
                         foreach (var f in new DirectoryInfo(currentFolder + "\\config").GetFiles())
                         {
-                            Log.LogInfo("Overriding " + f.Name);
+                            LogInfo("Overriding " + f.Name);
                             if (File.Exists(Paths.ConfigPath + "\\" + f.Name)) File.Delete(Paths.ConfigPath + "\\" + f.Name);
                             Directory.Move(f.FullName, Paths.ConfigPath + "\\" + f.Name);
                         }
                         foreach (var d in new DirectoryInfo(currentFolder + "\\config").GetDirectories())
                         {
-                            Log.LogInfo("Overriding " + d.Name);
+                            LogInfo("Overriding " + d.Name);
                             if (Directory.Exists(Paths.ConfigPath + "\\" + d.Name)) Directory.Delete(Paths.ConfigPath + "\\" + d.Name, true);
                             Directory.Move(currentFolder + "\\config\\" + d.Name, Paths.ConfigPath + "\\" + d.Name);
                         }
                         Directory.Delete(currentFolder + "\\config", true);
-                        Log.LogInfo("Also successful!");
+                        LogInfo("Also successful!");
                     }
-                    Log.LogInfo("Enjoy " + modname + "! -prod");
+                    LogInfo("Enjoy " + modname + "! -prod");
                 }
-                else Log.LogError("CANNOT FIND " + modname + "!" + (modname == "WRB" ? " hifuh what did you do :(" : ""));
-            } catch (Exception ex) { Log.LogError(ex); }
+                else LogInfo("CANNOT FIND " + modname + "!" + (modname == "WRB" ? " hifuh what did you do :(" : ""));
+            } catch (Exception ex) { LogInfo(ex); }
+        }
+
+        public static void LogInfo(object e)
+        {
+            // System.Console.WriteLine("[Info: " + PluginName + "] " + e.ToString());
         }
     }
 }
